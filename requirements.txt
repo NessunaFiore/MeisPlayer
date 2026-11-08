@@ -1,0 +1,9 @@
+#ENG: Need to install the next librarys - ESP: Instala estas librerias, porfis
+spotdl
+pyinstaller
+spotipy
+yt-dlp
+ytmusicapi
+mutagen
+syncedlyrics
+Pillow
