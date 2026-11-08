@@ -14,20 +14,30 @@ Este proyecto nació de la necesidad de tener un respaldo personal de la música
 * Metadatos completos: Descarga el archivo con el título, artista, álbum, año y portada incrustados.
 * Letras: Busca y añade la letra de la canción automáticamente (si está disponible).
 * Sistema de respaldo: Si una canción está bloqueada o restringida en YouTube Music, el programa busca automáticamente una versión alternativa en YouTube normal.
-* Reanudación: Si cierras el programa, al volver a intentar la descarga, el sistema omite las canciones que ya existen y continúa donde se quedó(debes seleccionar la misma carpeta donde ya habias inciado tu descarga).
+* Reanudación: Si cierras el programa, al volver a intentar la descarga, el sistema omite las canciones que ya existen y continúa donde se quedó (debes seleccionar la misma carpeta donde ya habías iniciado tu descarga).
 * Selector de carpeta: Permite elegir la ubicación exacta donde se guardará la música.
+* Organización inteligente: Si dos canciones tienen el mismo nombre pero diferente artista, las guarda como "Canción - Artista" para no sobrescribir archivos.
 
+## Requisitos e Instalación
 
-## Descarga e Instalación 
+Para usar esta aplicación, es necesario descargar el código fuente desde la sección de **[Releases](https://github.com/XannyCookieStar/MeisPlayer/releases)** y compilarla tú mismo. Esto se debe a que el repositorio no incluye las claves de la API de Spotify o un ejecutable precompilado. 
 
-## Requisitos
+**Nota:** El archivo `.zip` de la sección *Releases* **ya incluye los archivos necesarios (`ffmpeg.exe` y `ffprobe.exe`)**, así que no tendrás que descargarlos por separado.
 
-Para usar esta aplicación, es necesario descargar el código fuente desde la sección de [Releases] y compilarla tú mismo. Esto se debe a que el repositorio no incluye las claves de la API de Spotify ni un ejecutable precompilado. Sigue estos pasos para compilarlo:
+### 1. Obtener tus credenciales de Spotify (API Keys)
+Por seguridad, el proyecto no incluye las claves. Debes crear una aplicación propia:
+1. Ve al [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) e inicia sesión.
+2. Haz clic en "Create app".
+3. Llena los datos (Nombre, Descripción). En Redirect URIs, coloca exactamente: `http://127.0.0.1:8080/callback` y haz clic en Add.
+4. Acepta los términos y guarda.
+5. Entra a tu nueva app y copia tu **Client ID** y **Client Secret**.
+6. Abre el archivo `Downloader.py` y pégalos en las variables `CLIENT_ID` y `CLIENT_SECRET`.
+7. Nota: En caso que deses compatir la version con tus API KEYS, deberás agregar en la sección "User Management" el Dashboard los correos, de tus colobaradores, para que puedan utilizar tu version con tus keya (maximo 5 usuarios invitados, politicas de Spotify) para poder usarla.
 
-### 1. Descargar y extraer el proyecto
+### 2. Descargar y extraer el proyecto
 Descarga el archivo `.zip` desde la sección de **Releases** y extráelo en una carpeta de tu preferencia.
 
-### 2. Instalar Python y las dependencias
+### 3. Instalar Python y las dependencias
 Asegúrate de tener Python instalado. Abre una terminal en la carpeta del proyecto y ejecuta:
 ```bash
 python -m venv .venv
@@ -37,18 +47,36 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+```
+4. Ejecutar o Compilar la aplicación
 
+EJECUTAR:
+```bash 
+python Main.py
+```
+COMPILAR:
+```bash 
+pyinstaller --noconfirm --onedir --windowed --name "MeisPlayer" --icon="Mei.ico" --add-data "Mei.ico;." --add-data "ffmpeg.exe;." --add-data "ffprobe.exe;." --collect-all ytmusicapi Main.py
+```
 
-### Limitaciones conocidas (Modo de Desarrollo de Spotify)
+## Limitaciones conocidas (Modo de Desarrollo de Spotify)
 
 Debido a las políticas actuales de Spotify para aplicaciones en modo de desarrollo:
 1. Límite de usuarios: La aplicación solo puede ser usada por un máximo de 5 usuarios. Si deseas invitar a alguien, el dueño de la API debe agregar su correo en el panel de control de desarrolladores de Spotify.
 2. Playlists de terceros: La API de Spotify no permite leer playlists creadas por otros usuarios. Solo se pueden descargar playlists creadas o guardadas en la biblioteca propia.
-3. Cuenta Premium: El dueño de las Api keys debe tener una cuenta de Spotify Premium activa. Los usuarios agregados al proyecto (paso 1) no lo necesitan.
+3. Cuenta Premium: El dueño de las API keys debe tener una cuenta de Spotify Premium activa. Los usuarios agregados al proyecto (paso 1) no lo necesitan.
 
 ## Descargo de Responsabilidad
 
-Mei's Player es una herramienta creada con fines educativos y para uso personal (conservación de música para escuchar offline).
+Mei's Player es una herramienta creada con fines educativos y para uso personal (conservación de música para escuchar offline sin depender de subcriones o servicios de streming).
 * El desarrollador de esta aplicación no se hace responsable del uso que los usuarios le den al software.
 * Este proyecto no está afiliado ni respaldado por Spotify o YouTube.
 * Al usar esta herramienta, el usuario asume toda la responsabilidad de cumplir con los Términos de Servicio de las plataformas mencionadas.
+
+## Créditos
+
+Este es un proyecto personal en estado Beta, creado y motivado por la conservacion de las biblioteca digitales. Si encuentras un error o tienes una idea para mejorarlo, eres bienvenido a abrir un Issue o enviar un Pull Request.
+
+## Agradecimientos
+
+Este proyecto no hubiese sido posible sin la ayuda de Chris, aquella persona que me motivo e inspiro para la creacion de este proyecto
