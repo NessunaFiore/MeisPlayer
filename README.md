@@ -17,12 +17,6 @@ Este proyecto nació de la necesidad de tener un respaldo personal de la música
 * Reanudación: Si cierras el programa, al volver a intentar la descarga, el sistema omite las canciones que ya existen y continúa donde se quedó(debes seleccionar la misma carpeta donde ya habias inciado tu descarga).
 * Selector de carpeta: Permite elegir la ubicación exacta donde se guardará la música.
 
-## Descargo de Responsabilidad
-
-Mei's Player es una herramienta creada con fines educativos y para uso personal (conservación de música para escuchar offline).
-* El desarrollador de esta aplicación no se hace responsable del uso que los usuarios le den al software.
-* Este proyecto no está afiliado ni respaldado por Spotify o YouTube.
-* Al usar esta herramienta, el usuario asume toda la responsabilidad de cumplir con los Términos de Servicio de las plataformas mencionadas.
 
 ## Descarga e Instalación 
 
@@ -51,3 +45,10 @@ Debido a las políticas actuales de Spotify para aplicaciones en modo de desarro
 1. Límite de usuarios: La aplicación solo puede ser usada por un máximo de 5 usuarios. Si deseas invitar a alguien, el dueño de la API debe agregar su correo en el panel de control de desarrolladores de Spotify.
 2. Playlists de terceros: La API de Spotify no permite leer playlists creadas por otros usuarios. Solo se pueden descargar playlists creadas o guardadas en la biblioteca propia.
 3. Cuenta Premium: El dueño de las Api keys debe tener una cuenta de Spotify Premium activa. Los usuarios agregados al proyecto (paso 1) no lo necesitan.
+
+## Descargo de Responsabilidad
+
+Mei's Player es una herramienta creada con fines educativos y para uso personal (conservación de música para escuchar offline).
+* El desarrollador de esta aplicación no se hace responsable del uso que los usuarios le den al software.
+* Este proyecto no está afiliado ni respaldado por Spotify o YouTube.
+* Al usar esta herramienta, el usuario asume toda la responsabilidad de cumplir con los Términos de Servicio de las plataformas mencionadas.
