@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+config.json
+.cache
+error_debug.txt
+descargas/
+build/
+dist/
+Output/
+*.spec
+ffmpeg.exe
+ffprobe.exe

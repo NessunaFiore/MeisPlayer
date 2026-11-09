@@ -8,18 +8,36 @@ import syncedlyrics
 import io
 import subprocess
 import time
+import json # <--- NUEVO
 from PIL import Image
 from spotipy.oauth2 import SpotifyOAuth
 from ytmusicapi import YTMusic
 from mutagen.id3 import ID3, USLT
 
-#CREA TUS CREDENCIALES DESDE https://developer.spotify.com/dashboard
-CLIENT_ID = "TU_CLIENT_ID_AQUI"#INGRESA TU PROPIA CLIENT_ID
-CLIENT_SECRET = "TU_CLIENT_SECRET_AQUI"#INGRESA TU PROPIA CLIENT_SECRET
-REDIRECT_URI = "http://127.0.0.1:8080/callback"#ESTA SE MANTIENE IGUAL, NO CAMBIAR
+REDIRECT_URI = "http://127.0.0.1:8080/callback"
+
+def obtener_ruta_config():
+    """Retorna la ruta del archivo config.json en la misma carpeta del script o exe."""
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, "config.json")
 
 class MusicDownloader:
     def __init__(self):
+        config_path = obtener_ruta_config()
+        
+        # Si no existe el archivo de config, lanzamos un error para que Main.py lo atrape
+        if not os.path.exists(config_path):
+            raise Exception("No se encontró el archivo de configuración.")
+            
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            
+        CLIENT_ID = config.get("CLIENT_ID")
+        CLIENT_SECRET = config.get("CLIENT_SECRET")
+
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
