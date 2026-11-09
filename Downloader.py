@@ -8,7 +8,7 @@ import syncedlyrics
 import io
 import subprocess
 import time
-import json # <--- NUEVO
+import json 
 from PIL import Image
 from spotipy.oauth2 import SpotifyOAuth
 from ytmusicapi import YTMusic
