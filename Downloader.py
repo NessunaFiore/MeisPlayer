@@ -8,7 +8,10 @@ import syncedlyrics
 import io
 import subprocess
 import time
-import json # <--- NUEVO
+import json
+import asyncio
+import xazam
+import difflib
 from PIL import Image
 from spotipy.oauth2 import SpotifyOAuth
 from ytmusicapi import YTMusic
@@ -24,11 +27,71 @@ def obtener_ruta_config():
         base_path = os.path.abspath(".")
     return os.path.join(base_path, "config.json")
 
+# --- NUEVO: Funciones para recordar la última carpeta de descargas ---
+def obtener_ultima_carpeta():
+    config_path = obtener_ruta_config()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return config.get("ULTIMA_CARPETA", os.path.expanduser("~"))
+        except:
+            pass
+    return os.path.expanduser("~")
+
+def guardar_ultima_carpeta(ruta):
+    config_path = obtener_ruta_config()
+    config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        except:
+            pass
+            
+    config["ULTIMA_CARPETA"] = ruta
+    
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4)
+    except Exception as e:
+        print(f"No se pudo guardar la última carpeta: {e}")
+
+# --- NUEVO: Funciones para recordar el último formato ---
+def obtener_ultimo_formato():
+    config_path = obtener_ruta_config()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return config.get("ULTIMO_FORMATO", "mp3")
+        except:
+            pass
+    return "mp3"
+
+def guardar_ultimo_formato(formato):
+    config_path = obtener_ruta_config()
+    config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        except:
+            pass
+            
+    config["ULTIMO_FORMATO"] = formato
+    
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4)
+    except Exception as e:
+        print(f"No se pudo guardar el último formato: {e}")
+# ------------------------------------------------------------------
+
 class MusicDownloader:
     def __init__(self):
         config_path = obtener_ruta_config()
         
-        # Si no existe el archivo de config, lanzamos un error para que Main.py lo atrape
         if not os.path.exists(config_path):
             raise Exception("No se encontró el archivo de configuración.")
             
@@ -46,6 +109,55 @@ class MusicDownloader:
         ))
         self.ytmusic = YTMusic()
 
+    def _verificar_audio(self, ruta_audio, artista_esperado, titulo_esperado):
+        """Usa Shazam para verificar si el audio descargado es el correcto."""
+        try:
+            if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+                directorio_ffmpeg = sys._MEIPASS
+            else:
+                directorio_ffmpeg = os.path.abspath(".")
+            
+            ffmpeg_exe = os.path.join(directorio_ffmpeg, "ffmpeg.exe" if os.name == 'nt' else "ffmpeg")
+            temp_fragmento = ruta_audio + "_muestra.tmp"
+
+            comando = [
+                ffmpeg_exe, '-y', '-ss', '30', '-i', ruta_audio, '-t', '20', 
+                '-acodec', 'libmp3lame', '-ar', '44100', '-ab', '128k', 
+                '-f', 'mp3', temp_fragmento
+            ]
+            
+            subprocess.run(comando, check=True, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+
+            if not os.path.exists(temp_fragmento):
+                return False, None
+                
+            with open(temp_fragmento, "rb") as f:
+                audio_bytes = f.read()
+
+            async def _identificar():
+                async with xazam.ShazamTransport() as transport:
+                    client = xazam.ShazamClient(transport)
+                    return await client.identify(audio_bytes)
+
+            resultado = asyncio.run(_identificar())
+
+            if os.path.exists(temp_fragmento):
+                try: os.remove(temp_fragmento)
+                except: pass
+
+            if not resultado.matched:
+                return False, None
+
+            track = resultado.track
+            return True, f"{track.subtitle} {track.title}"
+
+        except Exception as e:
+            print(f"Aviso: Error en la verificacion con Shazam: {e}")
+            if 'temp_fragmento' in locals() and os.path.exists(temp_fragmento):
+                try: os.remove(temp_fragmento)
+                except: pass
+            return False, None
+
     def search_songs(self, url):
         songs = []
         try:
@@ -56,12 +168,10 @@ class MusicDownloader:
                 results = self.sp.playlist_items(playlist_id)
                 tracks = results['items']
                 
-                # --- PAUSA DE SEGURIDAD (EVITA BLOQUEO DE SPOTIFY) ---
                 while results['next']:
-                    time.sleep(1.5)  # Espera 1.5 segundos entre páginas de 100 canciones
+                    time.sleep(1.5) 
                     results = self.sp.next(results)
                     tracks.extend(results['items'])
-                # -----------------------------------------------------
 
                 for item in tracks:
                     track = item.get('track') or item.get('item')
@@ -122,11 +232,9 @@ class MusicDownloader:
         try:
             safe_title = "".join([c for c in song_dict['name'] if c.isalpha() or c.isdigit() or c in ' -_,']).rstrip()
             
-            # --- EN CASO DE NOMBRES DUPLICADOS EN CANCIONES---
             filename = f"{safe_title}.{formato}"
             output_path = os.path.join(carpeta_destino, filename)
             
-            # Si el archivo base ya existe, verificamos de quién es
             if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
                 try:
                     audio_existente = None
@@ -149,25 +257,20 @@ class MusicDownloader:
                         elif formato == 'flac':
                             artista_existente = audio_existente.tags.get('artist', [''])[0]
 
-                    # Si el artista es el mismo, saltamos la canción
                     if song_dict['artist'].lower() in artista_existente.lower():
                         return output_path
                     else:
-                        # Si el artista es diferente, cambiamos el nombre a "Cancion - Artista"
                         safe_artist = "".join([c for c in song_dict['artist'] if c.isalpha() or c.isdigit() or c in ' -_,']).rstrip()
                         filename = f"{safe_title} - {safe_artist}.{formato}"
                         output_path = os.path.join(carpeta_destino, filename)
                         
-                        # Si el archivo con "Cancion - Artista" ya existe, lo saltamos
                         if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
                             return output_path
                             
                         print(f"Artista diferente. Guardando como: {filename}")
                 except Exception as e:
                     print(f"No se pudo leer los metadatos del archivo existente: {e}. Se procederá a descargar.")
-            # -------------------------------------
 
-            # --- LIMPIEZA DE ARCHIVOS TEMPORALES EN CASO DE CIERRE INESPERADO ---
             temp_download_path = os.path.join(carpeta_destino, f"tmp_{safe_title}")
             temp_output = os.path.join(carpeta_destino, f"final_{safe_title}.{formato}")
             temp_cover = os.path.join(carpeta_destino, f"tmp_cover_{safe_title}.jpg")
@@ -176,7 +279,6 @@ class MusicDownloader:
                 if os.path.exists(f):
                     try: os.remove(f)
                     except: pass
-            # -------------------------------------
 
             query = f"{song_dict['artist']} {song_dict['name']}"
             
@@ -199,48 +301,90 @@ class MusicDownloader:
                 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': formato, 'preferredquality': '192'}]
             }
 
-            descarga_exitosa = False
+            descarga_correcta = False
+            nombre_para_rescate = None
 
-            # --- 1ER INTENTO: BUSQUEDA EN YOUTUBE MUSIC ---
+            # --- 1ER INTENTO: BUSQUEDA EN YOUTUBE MUSIC (CON VERIFICACIÓN INTELIGENTE) ---
             try:
                 search_results = self.ytmusic.search(query, filter="songs", limit=5)
                 if search_results:
                     video_id = None
+                    video_title = ""
                     duracion_spotify = song_dict.get('duration_ms', 0) / 1000
                     
                     for result in search_results:
                         if 'duration_seconds' not in result: continue
                         if abs(result['duration_seconds'] - duracion_spotify) < 10:
                             video_id = result['videoId']
+                            video_title = result.get('title', '')
                             break
                     
                     if not video_id:
                         video_id = search_results[0]['videoId']
+                        video_title = search_results[0].get('title', '')
 
                     url_youtube = f"https://www.youtube.com/watch?v={video_id}"
+
+                    similitud = difflib.SequenceMatcher(None, song_dict['name'].lower(), video_title.lower()).ratio()
                     
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download([url_youtube])
-                    
-                    descarga_exitosa = True
+                    if similitud >= 0.80:
+                        print(f"Coincidencia de metadatos alta ({similitud*100:.1f}%). Saltando verificacion de Shazam.")
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download([url_youtube])
+                        descarga_correcta = True
+                    else:
+                        print(f"Coincidencia de metadatos baja ({similitud*100:.1f}%). Verificando con Shazam...")
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download([url_youtube])
+                        
+                        downloaded_file = f"{temp_download_path}.{formato}"
+                        if os.path.exists(downloaded_file):
+                            shazam_ok, shazam_query = self._verificar_audio(downloaded_file, song_dict['artist'], song_dict['name'])
+                            
+                            if shazam_ok and shazam_query:
+                                shazam_query_lower = shazam_query.lower()
+                                titulo_spotify = song_dict['name'].lower()
+                                sim_titulo = difflib.SequenceMatcher(None, titulo_spotify, shazam_query_lower).ratio()
+                                
+                                if sim_titulo >= 0.70:
+                                    nombre_para_rescate = shazam_query
+                                    print(f"Shazam confirmado por similitud de titulo. Preparando rescate usando: {nombre_para_rescate}")
+                                else:
+                                    print(f"Shazam se equivoco (dijo: '{shazam_query}' con {sim_titulo*100:.1f}% de similitud). Ignorando y usando metadatos de Spotify.")
+                                    nombre_para_rescate = None
+                                
+                                os.remove(downloaded_file)
+                            else:
+                                print("Shazam no pudo identificar. Pasando al rescate normal...")
+                                os.remove(downloaded_file)
             except Exception as e:
-                print(f"Aviso: Fallo en YouTube Music para '{song_dict['name']}'. INTENTANDO DESCARGA DE FUENTE ALTERNATIVA")
+                print(f"Aviso: Fallo en YouTube Music para '{song_dict['name']}. INTENTANDO DESCARGA DE FUENTE ALTERNATIVA")
 
             # --- 2DO INTENTO: BUSQUEDA EN YOUTUBE NORMAL ---
-            if not descarga_exitosa:
+            if not descarga_correcta:
                 try:
-                    query_rescate = f"{song_dict['artist']} - {song_dict['name']} lyrics"
+                    if nombre_para_rescate:
+                        query_rescate = nombre_para_rescate
+                        print(f"Usando query de Shazam: {query_rescate}")
+                    else:
+                        clean_name = song_dict['name'].replace('-', ' ').replace('_', ' ')
+                        clean_artist = song_dict['artist'].replace('-', ' ').replace('_', ' ')
+                        query_rescate = f"{clean_artist} {clean_name}"
+                        print(f"Usando query de Spotify: {query_rescate}")
+                    
                     url_rescate = f"ytsearch1:{query_rescate}"
                     
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         ydl.download([url_rescate])
                     
-                    descarga_exitosa = True
+                    descarga_correcta = True
+                    print(f"Rescate exitoso para '{song_dict['name']}'. Se acepta el audio.")
+                    
                 except Exception as e:
                     raise Exception(f"Falló la descarga en ambas fuentes: {e}")
 
-            if not descarga_exitosa:
-                raise Exception("No se pudo descargar el audio.")
+            if not descarga_correcta:
+                raise Exception("No se pudo descargar el audio correcto.")
 
             downloaded_file = f"{temp_download_path}.{formato}"
 

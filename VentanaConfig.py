@@ -7,6 +7,7 @@ import json
 import webbrowser  
 from PIL import Image, ImageTk
 from Downloader import obtener_ruta_config
+from styles import THEME_DARK, aplicar_barra_titulo_oscura, configurar_estilos_oscuro
 
 def resource_path(relative_path):
     try: base_path = sys._MEIPASS
@@ -23,9 +24,11 @@ class ConfigApp:
     def __init__(self, root, on_save_callback):
         self.root = root
         self.root.title("Configuración Inicial - Mei's Player")
+        configurar_estilos_oscuro(self.root)
         centrar_ventana(self.root, 420, 380)
         self.root.resizable(False, False)
         self.on_save_callback = on_save_callback
+        self.root.after_idle(aplicar_barra_titulo_oscura, self.root)
         
         try: self.root.iconbitmap(resource_path("Mei.ico"))
         except: pass
@@ -53,7 +56,9 @@ class ConfigApp:
     def mostrar_tutorial(self):
         tut_win = tk.Toplevel(self.root)
         tut_win.title("Tutorial: Cómo obtener tus API Keys")
+        configurar_estilos_oscuro(tut_win)
         centrar_ventana(tut_win, 800, 600)
+        tut_win.after_idle(aplicar_barra_titulo_oscura, tut_win)
         
         try: tut_win.iconbitmap(resource_path("Mei.ico"))
         except: pass
@@ -66,7 +71,12 @@ class ConfigApp:
         frame_scroll = ttk.Frame(tut_win)
         frame_scroll.pack(side="top", fill="both", expand=True)
 
-        canvas = tk.Canvas(frame_scroll)
+        canvas = tk.Canvas(
+            frame_scroll,
+            bg=THEME_DARK["background"],
+            highlightthickness=0,
+            bd=0,
+        )
         scrollbar = ttk.Scrollbar(frame_scroll, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
 
@@ -97,7 +107,14 @@ class ConfigApp:
                 
                 ttk.Label(frame_link, text=texto + " Haz clic aquí: ").pack(side="left")
                 
-                link = tk.Label(frame_link, text="Spotify Developer Dashboard", fg="blue", cursor="hand2", font=("Helvetica", 10, "underline"))
+                link = tk.Label(
+                    frame_link,
+                    text="Spotify Developer Dashboard",
+                    bg=THEME_DARK["background"],
+                    fg="#8AB4F8",
+                    cursor="hand2",
+                    font=("Helvetica", 10, "underline"),
+                )
                 link.pack(side="left")
                 link.bind("<Button-1>", lambda e: webbrowser.open_new("https://developer.spotify.com/dashboard"))
             else:
