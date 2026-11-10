@@ -1,115 +1,59 @@
-import math
 import time
-import tkinter as tk
-from styles import crear_rectangulo_redondeado
+
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QFont, QPainter
+
+from ui.styles import THEME_DARK
 
 
-class DownloadProgressBar(tk.Canvas):
-    def __init__(self, master, width=170, height=22, **kwargs):
-        super().__init__(
-            master,
-            width=width,
-            height=height,
-            highlightthickness=0,
-            bd=0,
-            bg=master.cget("bg"),
-            **kwargs,
+RUNNING_PROGRESS_LIMIT = 0.92
+RUNNING_PROGRESS_SECONDS = 24
+
+
+def progress_fraction(state, started_at):
+    if state in ("completed", "error"):
+        return 1.0
+    if state != "downloading" or started_at is None:
+        return 0.0
+    elapsed = max(0.0, time.monotonic() - started_at)
+    progress_time = min(elapsed / RUNNING_PROGRESS_SECONDS, 1.0)
+    eased_progress = 1 - (1 - progress_time) ** 3
+    return RUNNING_PROGRESS_LIMIT * eased_progress
+
+
+def draw_progress_bar(painter, rect, state, started_at):
+    track_rect = QRectF(rect)
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QColor(THEME_DARK["outline"]))
+    painter.setBrush(QColor(THEME_DARK["track"]))
+    painter.drawRoundedRect(track_rect, track_rect.height() / 2, track_rect.height() / 2)
+
+    fraction = progress_fraction(state, started_at)
+    if fraction > 0:
+        fill_color = (
+            THEME_DARK["error"] if state == "error" else THEME_DARK["success"]
         )
-        self._progress = 0.0
-        self._state = "pending"
-        self._started_at = None
-        self._after_id = None
-        self._colors = {
-            "background": master.cget("bg"),
-            "foreground": "#333333",
-            "track": "#BDBDBD",
-            "outline": "#AAAAAA",
-        }
-        self.bind("<Configure>", self._draw)
-        self._draw()
+        fill_rect = QRectF(track_rect)
+        fill_rect.setWidth(max(track_rect.height(), track_rect.width() * fraction))
+        fill_rect.setWidth(min(track_rect.width(), fill_rect.width()))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(fill_color))
+        painter.drawRoundedRect(fill_rect, fill_rect.height() / 2, fill_rect.height() / 2)
 
-    def start(self):
-        self._cancel_animation()
-        self._state = "downloading"
-        self._progress = 0.0
-        self._started_at = time.monotonic()
-        self._draw()
-        self._animate()
-
-    def complete(self):
-        self._cancel_animation()
-        self._state = "completed"
-        self._progress = 1.0
-        self._draw()
-
-    def fail(self):
-        self._cancel_animation()
-        self._state = "error"
-        self._progress = 1.0
-        self._draw()
-
-    def _animate(self):
-        if self._state != "downloading" or self._started_at is None:
-            return
-
-        elapsed = time.monotonic() - self._started_at
-        self._progress = min(0.92, 0.92 * (1 - math.exp(-elapsed / 8)))
-        self._draw()
-        self._after_id = self.after(100, self._animate)
-
-    def _cancel_animation(self):
-        if self._after_id is not None:
-            self.after_cancel(self._after_id)
-            self._after_id = None
-
-    def _draw(self, _event=None):
-        width = self.winfo_width()
-        height = self.winfo_height()
-        if width <= 1 or height <= 1:
-            return
-
-        background = self._colors["track"]
-        fill = "#4CAF50" if self._state in ("downloading", "completed") else "#E53935"
-        if self._state == "pending":
-            fill = background
-
-        self.delete("all")
-        crear_rectangulo_redondeado(
-            self, 0, 0, width, height, height / 2,
-            fill=background, outline=self._colors["outline"], width=1,
-        )
-        if self._progress > 0:
-            progress_width = max(height / 2, width * self._progress)
-            crear_rectangulo_redondeado(
-                self, 0, 0, min(width, progress_width), height, height / 2,
-                fill=fill, outline="",
-            )
-
-        labels = {
-            "pending": "(pendiente)",
-            "downloading": "DESCARGANDO",
-            "completed": "COMPLETADO",
-            "error": "ERROR",
-        }
-        self.create_text(
-            width / 2,
-            height / 2,
-            text=labels[self._state],
-            fill="#FFFFFF" if self._state != "pending" else self._colors["foreground"],
-            font=("Helvetica", 8, "bold"),
-        )
-
-    def set_background(self, color):
-        self.configure(bg=color)
-        self._colors["background"] = color
-        self._draw()
-
-    def set_theme(self, background, foreground, track, outline):
-        self._colors.update(
-            background=background,
-            foreground=foreground,
-            track=track,
-            outline=outline,
-        )
-        self.configure(bg=background)
-        self._draw()
+    labels = {
+        "pending": "Pendiente",
+        "downloading": "Descargando...",
+        "completed": "Completado",
+        "error": "Error",
+    }
+    painter.setPen(
+        QColor(THEME_DARK["foreground"] if state == "pending" else "#FFFFFF")
+    )
+    painter.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
+    painter.drawText(
+        track_rect,
+        Qt.AlignmentFlag.AlignCenter,
+        labels.get(state, "(pendiente)"),
+    )
+    painter.restore()

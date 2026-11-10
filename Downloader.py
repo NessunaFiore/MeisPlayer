@@ -229,6 +229,7 @@ class MusicDownloader:
         return songs
 
     def download_song(self, song_dict, formato, carpeta_destino):
+        self.last_error = None
         try:
             safe_title = "".join([c for c in song_dict['name'] if c.isalpha() or c.isdigit() or c in ' -_,']).rstrip()
             
@@ -480,6 +481,7 @@ class MusicDownloader:
 
             return output_path
         except Exception as e:
+            self.last_error = str(e)
             try:
                 with open("error_debug.txt", "a", encoding="utf-8") as f:
                     f.write(f"Error al descargar '{song_dict['name']}':\n{str(e)}\n{'-'*40}\n")

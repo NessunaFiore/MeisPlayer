@@ -16,8 +16,8 @@ Este proyecto nació de la necesidad de tener un respaldo personal de la música
 * Sistema de respaldo: Si una canción está bloqueada o restringida en YouTube Music, el programa busca automáticamente una versión alternativa en YouTube normal.
 * Reanudación: Si cierras el programa, al volver a intentar la descarga, el sistema omite las canciones que ya existen y continúa donde se quedó (debes seleccionar la misma carpeta donde ya habías iniciado tu descarga).
 * Selector de carpeta: Permite elegir la ubicación exacta donde se guardará la música.
-* Seguimiento de descargas: La lista centra automáticamente la canción activa y coloca los errores al principio al terminar el lote.
-* Tema oscuro permanente en la ventana principal, configuración y tutorial.
+* Seguimiento de descargas: La lista centra automáticamente la canción activa y coloca los errores al principio al terminar el lote. Se pueden pausar o detener los lotes; detener termina la canción activa y permite limpiar la lista.
+
 
 ## Descargo de Responsabilidad
 
@@ -52,10 +52,9 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+```
 
-### Limitaciones conocidas (Modo de Desarrollo de Spotify)
+La interfaz está implementada con PySide6 y los recursos visuales se encuentran en `recursos/imagenes` y `recursos/fuentes`.
 
-Debido a las políticas actuales de Spotify para aplicaciones en modo de desarrollo:
-1. Límite de usuarios: La aplicación solo puede ser usada por un máximo de 5 usuarios. Si deseas invitar a alguien, el dueño de la API debe agregar su correo en el panel de control de desarrolladores de Spotify.
-2. Playlists de terceros: La API de Spotify no permite leer playlists creadas por otros usuarios. Solo se pueden descargar playlists creadas o guardadas en la biblioteca propia.
-3. Cuenta Premium: El dueño de las Api keys debe tener una cuenta de Spotify Premium activa. Los usuarios agregados al proyecto (paso 1) no lo necesitan.
+### AGRADECIMIENTOS
+Este proyecto no hubiese nacido si no fuese por la presencia de una persona muy especial para mi, gracias Mei, te adoro.

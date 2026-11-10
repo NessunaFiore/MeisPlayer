@@ -11,3 +11,4 @@ Output/
 *.spec
 ffmpeg.exe
 ffprobe.exe
+config.json

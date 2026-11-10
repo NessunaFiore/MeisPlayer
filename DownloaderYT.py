@@ -133,6 +133,7 @@ class MusicDownloaderYT:
 
     def download_song(self, song_dict, formato, carpeta_destino):
         """Descarga el audio de YouTube y le inyecta título y artista."""
+        self.last_error = None
         try:
             # El nombre del archivo será exactamente el título del video
             safe_title = "".join([c for c in song_dict['name'] if c.isalpha() or c.isdigit() or c in ' -_,']).rstrip()
@@ -194,6 +195,7 @@ class MusicDownloaderYT:
 
             return output_path
         except Exception as e:
+            self.last_error = str(e)
             print(f"Error al descargar desde YouTube {song_dict['name']}: {e}")
             if 'temp_download_path' in locals() and os.path.exists(f"{temp_download_path}.{formato}"):
                 os.remove(f"{temp_download_path}.{formato}")

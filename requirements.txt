@@ -7,3 +7,6 @@ ytmusicapi
 mutagen
 syncedlyrics
 Pillow
+PySide6>=6.8,<7
+xazam
+winotify
