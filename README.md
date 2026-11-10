@@ -52,7 +52,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-
+```
 ### Limitaciones conocidas (Modo de Desarrollo de Spotify)
 
 Debido a las políticas actuales de Spotify para aplicaciones en modo de desarrollo:
